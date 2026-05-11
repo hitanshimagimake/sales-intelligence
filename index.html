@@ -154,7 +154,6 @@ window.onload = () => {
   const saved = localStorage.getItem("ngrok_url");
   if (saved) {
     document.getElementById("ngrok-url-input").value = saved;
-    connectToServer(saved);
   }
 };
 
