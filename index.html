@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sales Intelligence — Imagimake</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  @keyframes bop { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+
+  #header { background: #0f172a; padding: 11px 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  #logo { width: 32px; height: 32px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  #header-text p:first-child { color: #fff; font-weight: 700; font-size: 14px; }
+  #header-text p:last-child { color: #64748b; font-size: 11px; }
+  #row-badge { margin-left: auto; background: #1e293b; color: #6366f1; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; border: 1px solid #334155; display:none; }
+  #server-badge { background: #052e16; color: #4ade80; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 20px; border: 1px solid #166534; margin-left: 6px; display:none; }
+  #change-url-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 5px 12px; font-size: 11px; cursor: pointer; display:none; font-family: inherit; }
+
+  #subbar { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; padding: 5px 18px; display: flex; align-items: center; gap: 10px; font-size: 11px; color: #475569; flex-shrink: 0; display:none; }
+  #legend { margin-left: auto; display: flex; gap: 10px; font-size: 10px; color: #94a3b8; }
+
+  /* Setup screen */
+  #setup-screen { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  #setup-card { background: #fff; border-radius: 20px; padding: 36px 40px; max-width: 520px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  #setup-card h2 { text-align: center; color: #0f172a; font-size: 18px; margin-bottom: 6px; }
+  #setup-card .sub { text-align:center; color: #64748b; font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+  .step-row { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start; }
+  .step-num { background: #6366f1; color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 12px; color: #334155; line-height: 1.7; }
+  .step-text code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; display: inline-block; margin-top: 2px; }
+  .url-input-wrap { margin: 20px 0 6px; }
+  .url-input-wrap label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+  #ngrok-url-input { width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: inherit; outline: none; color: #1e293b; background: #f8fafc; }
+  #ngrok-url-input:focus { border-color: #6366f1; background: #fff; }
+  #connect-btn { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-family: inherit; }
+  #connect-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  #connect-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; color: #dc2626; font-size: 12px; margin-top: 10px; display: none; }
+  .tip { color: #94a3b8; font-size: 11px; margin-top: 14px; text-align: center; line-height: 1.6; }
+
+  /* Chat */
+  #chat-ui { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .msg-row { display: flex; }
+  .msg-row.user { justify-content: flex-end; }
+  .bubble { max-width: 80%; border-radius: 18px; padding: 11px 15px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .bubble.user { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; border-radius: 18px 18px 4px 18px; }
+  .bubble.assistant { background: #fff; color: #1e293b; border-radius: 18px 18px 18px 4px; }
+  .scope-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; align-items: center; }
+  .scope-pill { font-size: 10px; font-weight: 700; border-radius: 20px; padding: 2px 8px; border: 1px solid; }
+  .filter-pill { font-size: 10px; color: #6366f1; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 20px; padding: 2px 8px; }
+  .scope-rows { font-size: 10px; color: #94a3b8; }
+  .chart-box { background: #f8fafc; border-radius: 12px; padding: 14px 8px 10px; margin-top: 10px; border: 1px solid #e2e8f0; }
+  .chart-title { font-size: 12px; font-weight: 700; color: #475569; margin: 0 0 10px 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+  thead tr th { background: #0f172a; color: #e2e8f0; padding: 9px 14px; text-align: left; font-weight: 600; font-size: 11px; white-space: nowrap; border-right: 1px solid #1e293b; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:nth-child(odd) { background: #fff; }
+  tbody td { padding: 8px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; white-space: nowrap; border-right: 1px solid #f1f5f9; }
+  #chips { padding: 0 18px 10px; display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+  .chip { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 5px 12px; font-size: 11px; color: #475569; cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .chip:hover { background: #f1f5f9; }
+  #input-row { padding: 10px 18px 16px; border-top: 1px solid #e2e8f0; background: #fff; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+  #input-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-family: inherit; resize: none; outline: none; background: #f8fafc; color: #1e293b; line-height: 1.5; }
+  #input-box:focus { border-color: #6366f1; background: #fff; }
+  #send-btn { background: linear-gradient(135deg,#6366f1,#8b5cf6); border: none; border-radius: 11px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #thinking-el .dots { display: flex; gap: 5px; padding: 10px 14px; background: #fff; border-radius: 18px 18px 18px 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); align-items: center; width: fit-content; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; }
+  h1 { font-size: 15px; font-weight: 800; color: #0f172a; margin: 14px 0 6px; }
+  h2.md { font-size: 14px; font-weight: 700; color: #0f172a; margin: 14px 0 4px; }
+  h3 { font-size: 13px; font-weight: 700; color: #0f172a; margin: 12px 0 4px; }
+  .md-p { margin: 3px 0; line-height: 1.65; }
+  .md-bullet { margin: 2px 0; padding-left: 16px; line-height: 1.65; }
+  hr.md { border: none; border-top: 1px solid #e2e8f0; margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="logo">📊</div>
+  <div id="header-text">
+    <p>Sales Intelligence</p>
+    <p id="header-sub">Imagimake · Powered by Claude AI</p>
+  </div>
+  <span id="row-badge"></span>
+  <span id="server-badge">⚡ Live</span>
+  <button id="change-url-btn" onclick="showSetup()">⚙ Change URL</button>
+</div>
+
+<div id="subbar">
+  <span>🖥️ Connected · Full data, no limits</span>
+  <span id="connected-url" style="color:#6366f1;font-weight:600"></span>
+  <div id="legend">
+    <span><span style="color:#16a34a">●</span> Full</span>
+    <span><span style="color:#d97706">◑</span> Filtered</span>
+    <span><span style="color:#7c3aed">◈</span> Aggregated</span>
+  </div>
+</div>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div id="setup-card">
+    <div style="font-size:40px;text-align:center;margin-bottom:12px">📊</div>
+    <h2>Sales Intelligence</h2>
+    <p class="sub">Enter your ngrok URL to connect to your local data server</p>
+
+    <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px">
+      <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px">First time? Start your server:</p>
+      <div class="step-row"><div class="step-num">1</div><div class="step-text">Open Command Prompt and run:<br><code>python python_server.py</code></div></div>
+      <div class="step-row"><div class="step-num">2</div><div class="step-text">In a second Command Prompt run:<br><code>ngrok http 5000</code></div></div>
+      <div class="step-row" style="margin-bottom:0"><div class="step-num">3</div><div class="step-text">Copy the <strong>Forwarding</strong> URL (looks like <code>https://abc123.ngrok-free.app</code>) and paste below</div></div>
+    </div>
+
+    <div class="url-input-wrap">
+      <label>Your ngrok URL</label>
+      <input id="ngrok-url-input" type="text" placeholder="https://abc123.ngrok-free.app" autocomplete="off"/>
+    </div>
+    <button id="connect-btn" onclick="connectToServer()">Connect →</button>
+    <div id="connect-error"></div>
+    <p class="tip">Your sales data never leaves your computer.<br>ngrok just creates a secure tunnel to your local server.</p>
+  </div>
+</div>
+
+<!-- Chat UI -->
+<div id="chat-ui">
+  <div id="messages"></div>
+  <div id="chips"></div>
+  <div id="input-row">
+    <textarea id="input-box" rows="2" placeholder="Ask anything… (Enter to send, Shift+Enter for new line)"></textarea>
+    <button id="send-btn" disabled>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const MONTH_NAMES = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"};
+const COLORS = ["#6366f1","#f59e0b","#10b981","#ef4444","#3b82f6","#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16"];
+const SUGGESTED = ["Top 10 SKUs by revenue overall","Monthly revenue trend","Channel-wise revenue share","Which product groups are declining?","Top cities on Quick Commerce","Compare GT vs Amazon","Hero SKU performance","Best performing zone"];
+
+let SERVER = "";
+let history = [];
+let serverInfo = null;
+let thinking = false;
+
+const fmtAmt = n => n>=10000000?"₹"+(n/10000000).toFixed(2)+"Cr":n>=100000?"₹"+(n/100000).toFixed(2)+"L":n>=1000?"₹"+(n/1000).toFixed(1)+"K":"₹"+Math.round(n);
+
+// ── Restore saved URL ─────────────────────────────────────────────
+window.onload = () => {
+  const saved = localStorage.getItem("ngrok_url");
+  if (saved) {
+    document.getElementById("ngrok-url-input").value = saved;
+    connectToServer(saved);
+  }
+};
+
+// ── Connect ───────────────────────────────────────────────────────
+async function connectToServer(urlOverride) {
+  const input = document.getElementById("ngrok-url-input");
+  const btn = document.getElementById("connect-btn");
+  const errEl = document.getElementById("connect-error");
+  let url = (urlOverride || input.value).trim().replace(/\/$/, "");
+  if (!url) { showError("Please enter your ngrok URL"); return; }
+  if (!url.startsWith("http")) url = "https://" + url;
+
+  btn.disabled = true; btn.textContent = "Connecting…"; errEl.style.display = "none";
+
+  try {
+    const res = await fetch(`${url}/health`, {
+      headers: { "ngrok-skip-browser-warning": "true" }
+    });
+    const d = await res.json();
+    SERVER = url;
+    localStorage.setItem("ngrok_url", url);
+    serverInfo = d;
+    onConnected(d);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = "Connect →";
+    showError("Could not connect. Make sure python_server.py and ngrok are running, then try again.");
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById("connect-error");
+  el.textContent = "⚠️ " + msg; el.style.display = "block";
+}
+
+function onConnected(d) {
+  document.getElementById("setup-screen").style.display = "none";
+  document.getElementById("chat-ui").style.display = "flex";
+  document.getElementById("subbar").style.display = "flex";
+  document.getElementById("row-badge").style.display = "inline";
+  document.getElementById("server-badge").style.display = "inline";
+  document.getElementById("change-url-btn").style.display = "inline";
+  document.getElementById("row-badge").textContent = "● " + d.rows.toLocaleString() + " rows";
+  document.getElementById("connected-url").textContent = SERVER.replace("https://","");
+  document.getElementById("header-sub").textContent = "Imagimake · " + SERVER.replace("https://","");
+  document.getElementById("send-btn").disabled = false;
+  const months = (d.months||[]).map(m=>MONTH_NAMES[m]||m).join(", ");
+  addMessage("assistant", `✅ **Connected!**\n\n**${d.rows.toLocaleString()} rows** loaded · Channels: ${(d.channels||[]).join(", ")}\n**Months:** ${months}\n\nAll ${d.rows.toLocaleString()} rows available — no sampling, no truncation. Ask me anything!`, null);
+  renderChips();
+}
+
+function showSetup() {
+  document.getElementById("setup-screen").style.display = "flex";
+  document.getElementById("chat-ui").style.display = "none";
+  document.getElementById("subbar").style.display = "none";
+  document.getElementById("connect-btn").disabled = false;
+  document.getElementById("connect-btn").textContent = "Connect →";
+}
+
+// ── Send message ──────────────────────────────────────────────────
+async function send(text) {
+  const q = (text || document.getElementById("input-box").value).trim();
+  if (!q || thinking || !SERVER) return;
+  document.getElementById("input-box").value = "";
+  document.getElementById("chips").style.display = "none";
+  thinking = true;
+  document.getElementById("send-btn").disabled = true;
+  addMessage("user", q, null);
+  showThinking();
+
+  try {
+    const res = await fetch(`${SERVER}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+      body: JSON.stringify({ question: q, history: history.slice(-6) })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    hideThinking();
+    addMessage("assistant", data.answer, {
+      scope: data.scope, rows: data.rows_used, total: data.total_rows,
+      filters: data.filters_applied, aggregated: data.was_aggregated
+    });
+    history.push({role:"user",content:q},{role:"assistant",content:data.answer});
+  } catch(e) {
+    hideThinking();
+    addMessage("assistant", `❌ **Lost connection to server.**\n\nYour ngrok URL may have changed. Click **⚙ Change URL** in the top right and enter the new ngrok URL.\n\nError: ${e.message}`, null);
+  }
+  thinking = false;
+  document.getElementById("send-btn").disabled = false;
+}
+
+// ── UI helpers ────────────────────────────────────────────────────
+function addMessage(role, text, scopeData) {
+  const msgs = document.getElementById("messages");
+  const row = document.createElement("div");
+  row.className = "msg-row " + role;
+  const wrap = document.createElement("div");
+  wrap.style.maxWidth = "82%";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble " + role;
+  bubble.innerHTML = role === "assistant" ? renderMd(text) : escHtml(text);
+  wrap.appendChild(bubble);
+  if (role === "assistant" && scopeData) {
+    wrap.appendChild(renderScope(scopeData));
+    const chart = buildChart(text);
+    if (chart) wrap.appendChild(renderChart(chart));
+  }
+  row.appendChild(wrap);
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showThinking() {
+  const msgs = document.getElementById("messages");
+  const el = document.createElement("div");
+  el.className = "msg-row"; el.id = "thinking-el";
+  el.innerHTML = `<div class="dots">${[0,1,2].map(i=>`<div class="dot" style="animation:bop 1s ease-in-out ${i*0.15}s infinite"></div>`).join("")}<span style="font-size:11px;color:#94a3b8;margin-left:6px">Analysing ${serverInfo?.rows?.toLocaleString()} rows…</span></div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function hideThinking() { const el=document.getElementById("thinking-el"); if(el)el.remove(); }
+
+function escHtml(t) { return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function renderMd(text) {
+  const lines = text.split("\n");
+  let html = ""; let inTable = false; let tableLines = [];
+  const flushTable = () => {
+    if (!tableLines.length) return;
+    const rows = tableLines.filter(l=>!/^\|[-:\s|]+\|$/.test(l.trim()));
+    const parsed = rows.map(l=>l.split("|").filter((_,i,a)=>i>0&&i<a.length-1).map(c=>c.trim()));
+    if (parsed.length < 2) { tableLines=[]; inTable=false; return; }
+    const [head,...body] = parsed;
+    html += `<div style="overflow-x:auto;margin:10px 0"><table><thead><tr>${head.map(h=>`<th>${escHtml(h)}</th>`).join("")}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${escHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    tableLines=[]; inTable=false;
+  };
+  lines.forEach(line => {
+    if (line.startsWith("|")) { inTable=true; tableLines.push(line); return; }
+    if (inTable) flushTable();
+    if (line.startsWith("### ")) { html+=`<h3>${escHtml(line.slice(4))}</h3>`; return; }
+    if (line.startsWith("## ")) { html+=`<h2 class="md">${escHtml(line.slice(3))}</h2>`; return; }
+    if (line.startsWith("# ")) { html+=`<h1>${escHtml(line.slice(2))}</h1>`; return; }
+    if (line.startsWith("---")) { html+=`<hr class="md">`; return; }
+    if (line.trim()==="") { html+=`<br>`; return; }
+    const isBullet = line.startsWith("- ")||line.startsWith("• ");
+    const raw = isBullet ? line.slice(2) : line;
+    const bold = raw.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>");
+    html += isBullet ? `<p class="md-bullet">• ${bold}</p>` : `<p class="md-p">${bold}</p>`;
+  });
+  if (inTable) flushTable();
+  return html;
+}
+
+function renderScope({scope,rows,total,filters,aggregated}) {
+  const cfg = {
+    full:    {color:"#16a34a",bg:"#f0fdf4",border:"#bbf7d0",label:"● Full Data"},
+    filtered:{color:"#d97706",bg:"#fffbeb",border:"#fde68a",label:"◑ Filtered"},
+    summary: {color:"#7c3aed",bg:"#faf5ff",border:"#e9d5ff",label:"◈ Aggregated"},
+  }[scope]||{color:"#64748b",bg:"#f8fafc",border:"#e2e8f0",label:scope};
+  const div = document.createElement("div");
+  div.className = "scope-bar";
+  div.innerHTML = `<span class="scope-pill" style="color:${cfg.color};background:${cfg.bg};border-color:${cfg.border}">${cfg.label}${aggregated?" (aggregated)":""}</span><span class="scope-rows">${(rows||0).toLocaleString()} / ${(total||0).toLocaleString()} rows</span>${(filters||[]).map(f=>`<span class="filter-pill">${escHtml(f)}</span>`).join("")}`;
+  return div;
+}
+
+function buildChart(answer) {
+  if (!answer) return null;
+  const tableMatch = answer.match(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/);
+  if (!tableMatch) return null;
+  try {
+    const headers = tableMatch[1].split("|").map(h=>h.trim()).filter(Boolean);
+    const rows = tableMatch[2].trim().split("\n").map(row=>row.split("|").filter((_,i,a)=>i>0&&i<a.length-1).map(c=>c.trim())).filter(r=>r.length>=2);
+    if (rows.length < 2) return null;
+    const parseVal = v => { const s=String(v).replace(/[₹,\s]/g,""); if(s.endsWith("Cr"))return parseFloat(s)*10000000; if(s.endsWith("L"))return parseFloat(s)*100000; if(s.endsWith("K"))return parseFloat(s)*1000; return parseFloat(s)||0; };
+    const numCols = headers.map((h,i)=>({h,i,isNum:rows.every(r=>!isNaN(parseVal(r[i]))&&r[i]!=="")})).filter(x=>x.isNum&&x.i>0);
+    if (!numCols.length) return null;
+    const data = rows.slice(0,15).map(r=>{const o={name:r[0]};numCols.forEach(({h,i})=>{o[h]=parseVal(r[i]);});return o;});
+    return {data, keys:numCols.slice(0,2), title: headers[0]+" by "+headers[numCols[0].i]};
+  } catch(e) { return null; }
+}
+
+function renderChart({data,keys,title}) {
+  const id = "chart-"+Date.now();
+  const div = document.createElement("div");
+  div.className = "chart-box";
+  div.innerHTML = `<p class="chart-title">📊 ${escHtml(title)}</p><canvas id="${id}" height="200"></canvas>`;
+  setTimeout(()=>{
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: data.map(d=>d.name),
+        datasets: keys.map(({h},i)=>({
+          label:h, data:data.map(d=>d[h]),
+          backgroundColor:COLORS[i]+"cc", borderColor:COLORS[i], borderWidth:1, borderRadius:4
+        }))
+      },
+      options: {
+        responsive:true,
+        plugins:{legend:{labels:{font:{size:11}}}},
+        scales:{
+          y:{ticks:{font:{size:10},callback:v=>v>=100000?(v/100000).toFixed(1)+"L":v>=1000?(v/1000).toFixed(0)+"K":v},grid:{color:"#e2e8f0"}},
+          x:{ticks:{font:{size:9},maxRotation:35},grid:{display:false}}
+        }
+      }
+    });
+  }, 100);
+  return div;
+}
+
+function renderChips() {
+  const c = document.getElementById("chips");
+  c.innerHTML = SUGGESTED.map(t=>`<button class="chip" onclick="send('${t}')">${t}</button>`).join("");
+}
+
+document.getElementById("input-box").addEventListener("keydown", e=>{
+  if (e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}
+});
+document.getElementById("send-btn").addEventListener("click", ()=>send());
+document.getElementById("ngrok-url-input").addEventListener("keydown", e=>{
+  if (e.key==="Enter") connectToServer();
+});
+</script>
+</body>
+</html>
